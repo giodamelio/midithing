@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bufio"
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/giodamelio/midithing/midi"
 	"github.com/spf13/cobra"
 	"log"
@@ -19,35 +18,8 @@ var logCmd = &cobra.Command{
 		m := midi.New()
 		defer m.Close()
 
-		// Get the current MIDI inputs
-		inputs := m.GetInputs()
-
-		if len(inputs) < 1 {
-			log.Fatalf("No MIDI inputs connected")
-		} else if len(inputs) == 1 {
-			log.Printf("Using the only MIDI input (%s)\n", inputs[0].String())
-			m.SetInput(inputs[0])
-		} else {
-			// Get a list of the inputs names as strings
-			inputsNames := make([]string, len(inputs))
-			for i, in := range inputs {
-				inputsNames[i] = in.String()
-			}
-
-			// Ask the user which one they would like to log
-			question := &survey.Select{
-				Message: "What input would you like to log?",
-				Options: inputsNames,
-			}
-			var answer string
-			err := survey.AskOne(question, &answer)
-			if err != nil {
-				log.Fatalf("Error: %v", err)
-			}
-
-			// Get the actual input based on the name
-			m.SetInputByName(answer)
-		}
+		// Select the input
+		selectInput(m)
 
 		log.Println("Press enter to stop logging...")
 
