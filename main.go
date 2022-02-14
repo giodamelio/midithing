@@ -1,6 +1,8 @@
 package main
 
-import "midithing/cmd"
+import (
+	"github.com/giodamelio/midithing/cmd"
+)
 
 func main() {
 	cmd.Execute()
