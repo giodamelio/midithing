@@ -48,6 +48,10 @@ func (m Midi) GetInputs() []midi.In {
 	return ins
 }
 
+func (m *Midi) SetInput(in midi.In) {
+	m.in = in
+}
+
 func (m *Midi) SetInputByName(name string) {
 	for _, input := range m.GetInputs() {
 		if input.String() == name {
