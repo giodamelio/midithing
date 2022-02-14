@@ -25,6 +25,10 @@ func New() *Midi {
 	return myMidi
 }
 
+func (m Midi) Name() string {
+	return m.in.String()
+}
+
 func (m Midi) Close() {
 	if m.in != nil {
 		err := m.in.Close()
@@ -61,6 +65,21 @@ func (m *Midi) SetInputByName(name string) {
 	}
 }
 
+func (m *Midi) CollectMessagesUntil(untilGroup *sync.WaitGroup) []Message {
+	var messages []Message
+	messagesChan := make(chan *Message)
+
+	go func() {
+		for message := range messagesChan {
+			messages = append(messages, *message)
+		}
+	}()
+
+	m.Listen(messagesChan, untilGroup)
+
+	return messages
+}
+
 func (m *Midi) Listen(messageChan chan *Message, closeGroup *sync.WaitGroup) {
 	closeGroup.Add(1)
 
@@ -69,8 +88,8 @@ func (m *Midi) Listen(messageChan chan *Message, closeGroup *sync.WaitGroup) {
 		// Send every message to the channel
 		reader.Each(func(pos *reader.Position, msg midi.Message) {
 			message := &Message{
-				description: msg.String(),
-				raw:         msg.Raw(),
+				Description: msg.String(),
+				Raw:         msg.Raw(),
 			}
 			messageChan <- message
 		}),
@@ -108,6 +127,38 @@ func (m *Midi) Listen(messageChan chan *Message, closeGroup *sync.WaitGroup) {
 }
 
 type Message struct {
-	description string
-	raw         []byte
+	Description string
+	Raw         []byte
+}
+
+type Input struct {
+	Name         string
+	Type         InputType
+	PrefixBytes  []byte
+	PostFixBytes []byte
+}
+
+type InputType string
+
+const (
+	InputUnknown  InputType = "unknown"
+	InputButton             = "button"
+	InputSlider             = "slider"
+	InputSelector           = "selector"
+)
+
+func InputTypeParse(in string) InputType {
+	switch in {
+	case "unknown":
+		return InputUnknown
+	case "button":
+		return InputButton
+	case "slider":
+		return InputSlider
+	case "selector":
+		return InputSelector
+	default:
+		log.Fatalf("%s is no an InputType", in)
+		return InputUnknown
+	}
 }
