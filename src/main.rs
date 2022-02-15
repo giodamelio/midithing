@@ -1,16 +1,35 @@
-use std::io::{stdin, stdout, Write};
 use std::error::Error;
+use std::io::{stdin, stdout, Write};
 
-use midir::{MidiInput, Ignore};
+use clap::{AppSettings, Parser, Subcommand};
+use midir::{Ignore, MidiInput};
+
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+#[clap(global_setting(AppSettings::PropagateVersion))]
+#[clap(global_setting(AppSettings::UseLongFormatForHelpSubcommand))]
+struct Cli {
+    #[clap(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand, Debug)]
+enum Commands {
+    Log {},
+}
 
 fn main() {
-    match run() {
-        Ok(_) => (),
-        Err(err) => println!("Error: {}", err)
+    let cli = Cli::parse();
+
+    match &cli.command {
+        Commands::Log {} => match log() {
+            Ok(_) => (),
+            Err(err) => println!("Error: {}", err),
+        },
     }
 }
 
-fn run() -> Result<(), Box<dyn Error>> {
+fn log() -> Result<(), Box<dyn Error>> {
     let mut input = String::new();
 
     let mut midi_in = MidiInput::new("midir reading input")?;
@@ -21,9 +40,12 @@ fn run() -> Result<(), Box<dyn Error>> {
     let in_port = match in_ports.len() {
         0 => return Err("no input port found".into()),
         1 => {
-            println!("Choosing the only available input port: {}", midi_in.port_name(&in_ports[0]).unwrap());
+            println!(
+                "Choosing the only available input port: {}",
+                midi_in.port_name(&in_ports[0]).unwrap()
+            );
             &in_ports[0]
-        },
+        }
         _ => {
             println!("\nAvailable input ports:");
             for (i, p) in in_ports.iter().enumerate() {
@@ -33,7 +55,8 @@ fn run() -> Result<(), Box<dyn Error>> {
             stdout().flush()?;
             let mut input = String::new();
             stdin().read_line(&mut input)?;
-            in_ports.get(input.trim().parse::<usize>()?)
+            in_ports
+                .get(input.trim().parse::<usize>()?)
                 .ok_or("invalid input port selected")?
         }
     };
@@ -42,11 +65,19 @@ fn run() -> Result<(), Box<dyn Error>> {
     let in_port_name = midi_in.port_name(in_port)?;
 
     // _conn_in needs to be a named parameter, because it needs to be kept alive until the end of the scope
-    let _conn_in = midi_in.connect(in_port, "midir-read-input", move |stamp, message, _| {
-        println!("{}: {:?} (len = {})", stamp, message, message.len());
-    }, ())?;
+    let _conn_in = midi_in.connect(
+        in_port,
+        "midir-read-input",
+        move |stamp, message, _| {
+            println!("{}: {:?} (len = {})", stamp, message, message.len());
+        },
+        (),
+    )?;
 
-    println!("Connection open, reading input from '{}' (press enter to exit) ...", in_port_name);
+    println!(
+        "Connection open, reading input from '{}' (press enter to exit) ...",
+        in_port_name
+    );
 
     input.clear();
     stdin().read_line(&mut input)?; // wait for next enter key press
