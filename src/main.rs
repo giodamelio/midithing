@@ -1,6 +1,7 @@
 use clap::{AppSettings, Parser, Subcommand};
 
 mod cmd;
+mod common;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
